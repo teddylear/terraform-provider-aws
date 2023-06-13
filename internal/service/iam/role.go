@@ -83,7 +83,7 @@ func ResourceRole() *schema.Resource {
 				Default:  false,
 			},
 			"inline_policy": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -309,8 +309,8 @@ func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	}
 
 	var configPoliciesList []*iam.PutRolePolicyInput
-	if v := d.Get("inline_policy").(*schema.Set); v.Len() > 0 {
-		configPoliciesList = expandRoleInlinePolicies(aws.StringValue(role.RoleName), v.List())
+	if v := d.Get("inline_policy").([]interface{}); len(v) > 0 {
+		configPoliciesList = expandRoleInlinePolicies(aws.StringValue(role.RoleName), v)
 	}
 
 	if !inlinePoliciesEquivalent(inlinePolicies, configPoliciesList) {
@@ -446,6 +446,9 @@ func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 				policyNames = append(policyNames, aws.String(tfMap["name"].(string)))
 			}
 		}
+
+		// TODO: this is what has to update,
+		// because there is we should be doing this, update in place instead
 		if err := deleteRoleInlinePolicies(ctx, conn, roleName, policyNames); err != nil {
 			return sdkdiag.AppendErrorf(diags, "updating IAM Role (%s): %s", d.Id(), err)
 		}
