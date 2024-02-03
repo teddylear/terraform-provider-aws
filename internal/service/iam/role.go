@@ -665,41 +665,42 @@ func (r *resourceIamRole) ModifyPlan(ctx context.Context, request resource.Modif
 			return
 		}
 
-		var oldPoliciesData []inlinePolicyData
-		response.Diagnostics.Append(state.InlinePolicy.ElementsAs(ctx, &oldPoliciesData, false)...)
-		if response.Diagnostics.HasError() {
-			return
-		}
+		if !plan.InlinePolicy.IsNull() && !state.InlinePolicy.IsNull() {
+			fmt.Println("hitting here")
+			var oldPoliciesData []inlinePolicyData
+			response.Diagnostics.Append(state.InlinePolicy.ElementsAs(ctx, &oldPoliciesData, false)...)
+			if response.Diagnostics.HasError() {
+				return
+			}
 
-		var newPoliciesData []inlinePolicyData
-		response.Diagnostics.Append(plan.InlinePolicy.ElementsAs(ctx, &newPoliciesData, false)...)
-		if response.Diagnostics.HasError() {
-			return
-		}
+			var newPoliciesData []inlinePolicyData
+			response.Diagnostics.Append(plan.InlinePolicy.ElementsAs(ctx, &newPoliciesData, false)...)
+			if response.Diagnostics.HasError() {
+				return
+			}
 
-		fmt.Println(fmt.Sprintf("oldPoliciesData: %+v", oldPoliciesData))
-		fmt.Println(fmt.Sprintf("newPoliciesData: %+v", newPoliciesData))
+			fmt.Println(fmt.Sprintf("oldPoliciesData: %+v", oldPoliciesData))
+			fmt.Println(fmt.Sprintf("newPoliciesData: %+v", newPoliciesData))
 
-		var planPoliciesData []inlinePolicyData
-		for _, newInlinePolicy := range newPoliciesData {
-			foundMatchInOldPolicies := false
-			for _, oldInlinePolicy := range oldPoliciesData {
-				if oldInlinePolicy.Name == newInlinePolicy.Name && verify.PolicyStringsEquivalent(oldInlinePolicy.Policy.ValueString(), newInlinePolicy.Policy.ValueString()) {
-					fmt.Println("found match!")
-					foundMatchInOldPolicies = true
-					planPoliciesData = append(planPoliciesData, oldInlinePolicy)
-					break
+			var planPoliciesData []inlinePolicyData
+			for _, newInlinePolicy := range newPoliciesData {
+				foundMatchInOldPolicies := false
+				for _, oldInlinePolicy := range oldPoliciesData {
+					if oldInlinePolicy.Name == newInlinePolicy.Name && verify.PolicyStringsEquivalent(oldInlinePolicy.Policy.ValueString(), newInlinePolicy.Policy.ValueString()) {
+						fmt.Println("found match!")
+						foundMatchInOldPolicies = true
+						planPoliciesData = append(planPoliciesData, oldInlinePolicy)
+						break
+					}
+				}
+
+				if !foundMatchInOldPolicies {
+					planPoliciesData = append(planPoliciesData, newInlinePolicy)
 				}
 			}
 
-			if !foundMatchInOldPolicies {
-				planPoliciesData = append(planPoliciesData, newInlinePolicy)
-			}
+			response.Plan.SetAttribute(ctx, path.Root("inline_policy"), planPoliciesData)
 		}
-
-		response.Plan.SetAttribute(ctx, path.Root("inline_policy"), planPoliciesData)
-
-		// TODO: set plan policies
 
 		// TODO: Is this required for state upgrade?
 		// if state.Description.ValueString() == plan.Description.ValueString() {

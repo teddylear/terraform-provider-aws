@@ -1058,7 +1058,7 @@ func TestAccIAMRole_InlinePolicy_outOfBandRemovalAddedBack(t *testing.T) {
 				Config: testAccRoleConfig_policyInline(rName, policyName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoleExists(ctx, resourceName, &role),
-					resource.TestCheckResourceAttr(resourceName, "inline_policies.%", "1"),
+					resource.TestCheckResourceAttr(resourceName, "inline_policy.#", "1"),
 				),
 			},
 		},
@@ -1128,7 +1128,7 @@ func TestAccIAMRole_InlinePolicy_outOfBandAdditionRemoved(t *testing.T) {
 				Config: testAccRoleConfig_policyInline(rName, policyName1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoleExists(ctx, resourceName, &role),
-					resource.TestCheckResourceAttr(resourceName, "inline_policies.%", "1"),
+					resource.TestCheckResourceAttr(resourceName, "inline_policy.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "managed_policy_arns.#", "0"),
 				),
 			},
