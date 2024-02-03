@@ -865,8 +865,6 @@ func TestAccIAMRole_InlinePolicy_badJSON(t *testing.T) {
 	})
 }
 
-// TODO: So close on this, for some reason namePrefix is showing up when Plan is modified... very annoying
-
 // // Reference: https://github.com/hashicorp/terraform-provider-aws/issues/19444
 func TestAccIAMRole_InlinePolicy_ignoreOrder(t *testing.T) {
 	ctx := acctest.Context(t)
@@ -2714,7 +2712,7 @@ resource "aws_iam_role" "test" {
     }]
   })
 
-  inline_policies = {}
+  inline_policy {}
 }
 `, roleName)
 }
