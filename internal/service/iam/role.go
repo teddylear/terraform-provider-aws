@@ -18,6 +18,8 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -47,7 +49,7 @@ import (
 const (
 	roleNameMaxLen       = 64
 	roleNamePrefixMaxLen = roleNameMaxLen - id.UniqueIDSuffixLength
-	ResNameRole       = "IAM Role"
+	ResNameRole          = "IAM Role"
 )
 
 // @FrameworkResource(name="Role")
@@ -67,53 +69,53 @@ func (r *resourceIamRole) Metadata(_ context.Context, request resource.MetadataR
 	response.TypeName = "aws_iam_role"
 }
 
-func EditPlanForSameReorderedPolicies() planmodifier.Map {
-	return editPlanForSameReorderedPolicies{}
-}
+// func EditPlanForSameReorderedPolicies() planmodifier.Map {
+// return editPlanForSameReorderedPolicies{}
+// }
 
-type editPlanForSameReorderedPolicies struct{}
+// type editPlanForSameReorderedPolicies struct{}
 
-// TODO: edit this once we get working
-func (m editPlanForSameReorderedPolicies) Description(_ context.Context) string {
-	return "Once set, the value of this attribute in state will not change."
-}
+// // TODO: edit this once we get working
+// func (m editPlanForSameReorderedPolicies) Description(_ context.Context) string {
+// return "Once set, the value of this attribute in state will not change."
+// }
 
-// TODO: edit this once we get working
-func (m editPlanForSameReorderedPolicies) MarkdownDescription(_ context.Context) string {
-	return "Once set, the value of this attribute in state will not change."
-}
+// // TODO: edit this once we get working
+// func (m editPlanForSameReorderedPolicies) MarkdownDescription(_ context.Context) string {
+// return "Once set, the value of this attribute in state will not change."
+// }
 
-// TODO: move to modify plan??
-func (m editPlanForSameReorderedPolicies) PlanModifyMap(ctx context.Context, req planmodifier.MapRequest, resp *planmodifier.MapResponse) {
-	// Do nothing if there is no state value.
-	if req.PlanValue.IsUnknown() || req.PlanValue.IsNull() {
-		return
-	}
+// // todo: move to modify plan??
+// func (m editplanforsamereorderedpolicies) planmodifymap(ctx context.context, req planmodifier.maprequest, resp *planmodifier.mapresponse) {
+// // do nothing if there is no state value.
+// if req.planvalue.isunknown() || req.planvalue.isnull() {
+// return
+// }
 
-	// TODO: something with making sure not just unknown but has value
-	if req.StateValue.IsUnknown() || req.StateValue.IsNull() {
-		return
-	}
+// // todo: something with making sure not just unknown but has value
+// if req.statevalue.isunknown() || req.statevalue.isnull() {
+// return
+// }
 
-	// TODO: do this more official way?
-	plan_inline_policies_map := flex.ExpandFrameworkStringValueMap(ctx, req.PlanValue)
+// // todo: do this more official way?
+// plan_inline_policies_map := flex.expandframeworkstringvaluemap(ctx, req.planvalue)
 
-	if len(plan_inline_policies_map) == 0 {
-		return
-	}
-	state_inline_policies_map := flex.ExpandFrameworkStringValueMap(ctx, req.StateValue)
+// if len(plan_inline_policies_map) == 0 {
+// return
+// }
+// state_inline_policies_map := flex.expandframeworkstringvaluemap(ctx, req.statevalue)
 
-	// If policies match, set plan for policy to use state version so that we don't see if diff bc ordering does not matter
-	for name, plan_policy_doc := range plan_inline_policies_map {
-		if state_policy_doc, ok := state_inline_policies_map[name]; ok {
-			if verify.PolicyStringsEquivalent(plan_policy_doc, state_policy_doc) {
-				plan_inline_policies_map[name] = state_policy_doc
-			}
-		}
-	}
+// // if policies match, set plan for policy to use state version so that we don't see if diff bc ordering does not matter
+// for name, plan_policy_doc := range plan_inline_policies_map {
+// if state_policy_doc, ok := state_inline_policies_map[name]; ok {
+// if verify.policystringsequivalent(plan_policy_doc, state_policy_doc) {
+// plan_inline_policies_map[name] = state_policy_doc
+// }
+// }
+// }
 
-	resp.PlanValue = flex.FlattenFrameworkStringValueMap(ctx, plan_inline_policies_map)
-}
+// resp.planvalue = flex.flattenframeworkstringvaluemap(ctx, plan_inline_policies_map)
+// }
 
 func (r *resourceIamRole) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
@@ -163,36 +165,37 @@ func (r *resourceIamRole) Schema(ctx context.Context, req resource.SchemaRequest
 				Computed: true,
 				Default:  booldefault.StaticBool(false),
 			},
+
 			// TODO: maybe mapof of IAMPolicytype?
-			"inline_policies": schema.MapAttribute{
-				ElementType: fwtypes.IAMPolicyType,
-				Optional:    true,
-				PlanModifiers: []planmodifier.Map{
-					EditPlanForSameReorderedPolicies(),
-					// TODO: custom plan modifier for something like editing plan is fine
-				},
-				// TODO: custom validator for name stuff?
-				// TODO: validators and name func for both
-				// "name": {
-				// Type:     schema.TypeString,
-				// Optional: true, // semantically required but syntactically optional to allow empty inline_policy
-				// ValidateFunc: validation.All(
-				// validation.StringIsNotEmpty,
-				// validRolePolicyName,
-				// ),
-				// },
-				// "policy": {
-				// Type:                  schema.TypeString,
-				// Optional:              true, // semantically required but syntactically optional to allow empty inline_policy
-				// ValidateFunc:          verify.ValidIAMPolicyJSON,
-				// DiffSuppressFunc:      verify.SuppressEquivalentPolicyDiffs,
-				// DiffSuppressOnRefresh: true,
-				// StateFunc: func(v interface{}) string {
-				// json, _ := verify.LegacyPolicyNormalize(v)
-				// return json
-				// },
-				// },
-			},
+			// "inline_policies": schema.MapAttribute{
+			// ElementType: fwtypes.IAMPolicyType,
+			// Optional:    true,
+			// PlanModifiers: []planmodifier.Map{
+			// EditPlanForSameReorderedPolicies(),
+			// // TODO: custom plan modifier for something like editing plan is fine
+			// },
+			// // TODO: custom validator for name stuff?
+			// // TODO: validators and name func for both
+			// // "name": {
+			// // Type:     schema.TypeString,
+			// // Optional: true, // semantically required but syntactically optional to allow empty inline_policy
+			// // ValidateFunc: validation.All(
+			// // validation.StringIsNotEmpty,
+			// // validRolePolicyName,
+			// // ),
+			// // },
+			// // "policy": {
+			// // Type:                  schema.TypeString,
+			// // Optional:              true, // semantically required but syntactically optional to allow empty inline_policy
+			// // ValidateFunc:          verify.ValidIAMPolicyJSON,
+			// // DiffSuppressFunc:      verify.SuppressEquivalentPolicyDiffs,
+			// // DiffSuppressOnRefresh: true,
+			// // StateFunc: func(v interface{}) string {
+			// // json, _ := verify.LegacyPolicyNormalize(v)
+			// // return json
+			// // },
+			// // },
+			// },
 			"managed_policy_arns": schema.SetAttribute{
 				Optional:    true,
 				ElementType: fwtypes.ARNType,
@@ -245,10 +248,8 @@ func (r *resourceIamRole) Schema(ctx context.Context, req resource.SchemaRequest
 				Default:  stringdefault.StaticString("/"),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplaceIfConfigured(),
-					// TODO: can I do this and remove setting in Update/read?
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				// Default: stringdefault.StaticString("/"),
 				Validators: []validator.String{
 					stringvalidator.LengthBetween(0, 512),
 				},
@@ -256,8 +257,6 @@ func (r *resourceIamRole) Schema(ctx context.Context, req resource.SchemaRequest
 			"permissions_boundary": schema.StringAttribute{
 				CustomType: fwtypes.ARNType,
 				Optional:   true,
-				// Computed:   true,
-				// Default:    stringdefault.StaticString(""),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -270,6 +269,23 @@ func (r *resourceIamRole) Schema(ctx context.Context, req resource.SchemaRequest
 			},
 			names.AttrTags:    tftags.TagsAttribute(),
 			names.AttrTagsAll: tftags.TagsAttributeComputedOnly(),
+		},
+		Blocks: map[string]schema.Block{
+			"inline_policy": schema.SetNestedBlock{
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Optional: true,
+							// TODO Validate,
+						},
+						"policy": schema.StringAttribute{
+							CustomType: fwtypes.IAMPolicyType,
+							Optional:   true,
+							// TODO Validate,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -286,11 +302,21 @@ type resourceIamRoleData struct {
 	NamePrefix          types.String      `tfsdk:"name_prefix"`
 	Path                types.String      `tfsdk:"path"`
 	PermissionsBoundary fwtypes.ARN       `tfsdk:"permissions_boundary"`
-	InlinePolicies      types.Map         `tfsdk:"inline_policies"`
+	InlinePolicy        types.Set         `tfsdk:"inline_policy"`
 	UniqueID            types.String      `tfsdk:"unique_id"`
 	ManagedPolicyArns   types.Set         `tfsdk:"managed_policy_arns"`
 	Tags                types.Map         `tfsdk:"tags"`
 	TagsAll             types.Map         `tfsdk:"tags_all"`
+}
+
+type inlinePolicyData struct {
+	Name   types.String      `tfsdk:"name"`
+	Policy fwtypes.IAMPolicy `tfsdk:"policy"`
+}
+
+var inlinePolicyAttrTypes = map[string]attr.Type{
+	"name":   types.StringType,
+	"policy": fwtypes.IAMPolicyType,
 }
 
 func oldSDKRoleSchema(ctx context.Context) schema.Schema {
@@ -400,104 +426,104 @@ func oldSDKRoleSchema(ctx context.Context) schema.Schema {
 	}
 }
 
-func (r *resourceIamRole) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
-	schemaV0 := oldSDKRoleSchema(ctx)
+// func (r *resourceIamRole) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+// schemaV0 := oldSDKRoleSchema(ctx)
 
-	return map[int64]resource.StateUpgrader{
-		0: {
-			PriorSchema:   &schemaV0,
-			StateUpgrader: upgradeIAMRoleResourceStateV0toV1,
-		},
-	}
-}
+// return map[int64]resource.StateUpgrader{
+// 0: {
+// PriorSchema:   &schemaV0,
+// StateUpgrader: upgradeIAMRoleResourceStateV0toV1,
+// },
+// }
+// }
 
-// TODO: ok finish working on this to perform upgrade cleanly
-func upgradeIAMRoleResourceStateV0toV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-	fmt.Println("Top of state upgrade")
-	type resourceIamRoleDataV0 struct {
-		ARN                 types.String `tfsdk:"arn"`
-		AssumeRolePolicy    types.String `tfsdk:"assume_role_policy"`
-		CreateDate          types.String `tfsdk:"create_date"`
-		Description         types.String `tfsdk:"description"`
-		ForceDetachPolicies types.Bool   `tfsdk:"force_detach_policies"`
-		ID                  types.String `tfsdk:"id"`
-		ManagedPolicyArns   types.Set    `tfsdk:"managed_policy_arns"`
-		MaxSessionDuration  types.Int64  `tfsdk:"max_session_duration"`
-		Name                types.String `tfsdk:"name"`
-		NamePrefix          types.String `tfsdk:"name_prefix"`
-		Path                types.String `tfsdk:"path"`
-		PermissionsBoundary types.String `tfsdk:"permissions_boundary"`
-		Tags                types.Map    `tfsdk:"tags"`
-		TagsAll             types.Map    `tfsdk:"tags_all"`
-		UniqueID            types.String `tfsdk:"unique_id"`
-		InlinePolicy        types.Set    `tfsdk:"inline_policy"`
-	}
+// // TODO: ok finish working on this to perform upgrade cleanly
+// func upgradeIAMRoleResourceStateV0toV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+// fmt.Println("Top of state upgrade")
+// type resourceIamRoleDataV0 struct {
+// ARN                 types.String `tfsdk:"arn"`
+// AssumeRolePolicy    types.String `tfsdk:"assume_role_policy"`
+// CreateDate          types.String `tfsdk:"create_date"`
+// Description         types.String `tfsdk:"description"`
+// ForceDetachPolicies types.Bool   `tfsdk:"force_detach_policies"`
+// ID                  types.String `tfsdk:"id"`
+// ManagedPolicyArns   types.Set    `tfsdk:"managed_policy_arns"`
+// MaxSessionDuration  types.Int64  `tfsdk:"max_session_duration"`
+// Name                types.String `tfsdk:"name"`
+// NamePrefix          types.String `tfsdk:"name_prefix"`
+// Path                types.String `tfsdk:"path"`
+// PermissionsBoundary types.String `tfsdk:"permissions_boundary"`
+// Tags                types.Map    `tfsdk:"tags"`
+// TagsAll             types.Map    `tfsdk:"tags_all"`
+// UniqueID            types.String `tfsdk:"unique_id"`
+// InlinePolicy        types.Set    `tfsdk:"inline_policy"`
+// }
 
-	var roleDataV0 resourceIamRoleDataV0
+// var roleDataV0 resourceIamRoleDataV0
 
-	resp.Diagnostics.Append(req.State.Get(ctx, &roleDataV0)...)
-	if resp.Diagnostics.HasError() {
-		fmt.Println("There was an error :(")
-		return
-	}
+// resp.Diagnostics.Append(req.State.Get(ctx, &roleDataV0)...)
+// if resp.Diagnostics.HasError() {
+// fmt.Println("There was an error :(")
+// return
+// }
 
-	fmt.Println("Made it here!")
+// fmt.Println("Made it here!")
 
-	roleDataCurrent := resourceIamRoleData{
-		ARN:                 fwtypes.ARNValue(roleDataV0.ARN.ValueString()),
-		AssumeRolePolicy:    fwtypes.IAMPolicyValue(roleDataV0.AssumeRolePolicy.ValueString()),
-		CreateDate:          roleDataV0.CreateDate,
-		Description:         roleDataV0.Description,
-		ForceDetachPolicies: roleDataV0.ForceDetachPolicies,
-		ID:                  roleDataV0.ID,
-		MaxSessionDuration:  roleDataV0.MaxSessionDuration,
-		Name:                roleDataV0.Name,
-		Path:                roleDataV0.Path,
-		UniqueID:            roleDataV0.UniqueID,
-		NamePrefix:          roleDataV0.NamePrefix,
-		Tags:                roleDataV0.Tags,
-		TagsAll:             roleDataV0.TagsAll,
-	}
+// roleDataCurrent := resourceIamRoleData{
+// ARN:                 fwtypes.ARNValue(roleDataV0.ARN.ValueString()),
+// AssumeRolePolicy:    fwtypes.IAMPolicyValue(roleDataV0.AssumeRolePolicy.ValueString()),
+// CreateDate:          roleDataV0.CreateDate,
+// Description:         roleDataV0.Description,
+// ForceDetachPolicies: roleDataV0.ForceDetachPolicies,
+// ID:                  roleDataV0.ID,
+// MaxSessionDuration:  roleDataV0.MaxSessionDuration,
+// Name:                roleDataV0.Name,
+// Path:                roleDataV0.Path,
+// UniqueID:            roleDataV0.UniqueID,
+// NamePrefix:          roleDataV0.NamePrefix,
+// Tags:                roleDataV0.Tags,
+// TagsAll:             roleDataV0.TagsAll,
+// }
 
-	// TODO: fix this later?
-	// roleDataCurrent.NamePrefix = types.StringNull()
+// // TODO: fix this later?
+// // roleDataCurrent.NamePrefix = types.StringNull()
 
-	// if roleDataV0.NamePrefix.ValueString() == "" {
-	// roleDataCurrent.NamePrefix = types.StringNull()
-	// // fmt.Println("Name prefix is empty!")
-	// }
+// // if roleDataV0.NamePrefix.ValueString() == "" {
+// // roleDataCurrent.NamePrefix = types.StringNull()
+// // // fmt.Println("Name prefix is empty!")
+// // }
 
-	// TODO: do something with this once I get to that test
-	// var policyARNs []string
-	// roleDataCurrent.ManagedPolicyArns = flex.FlattenFrameworkStringValueSet(ctx, policyARNs)
-	roleDataCurrent.ManagedPolicyArns = types.SetNull(fwtypes.ARNType)
+// // TODO: do something with this once I get to that test
+// // var policyARNs []string
+// // roleDataCurrent.ManagedPolicyArns = flex.FlattenFrameworkStringValueSet(ctx, policyARNs)
+// roleDataCurrent.ManagedPolicyArns = types.SetNull(fwtypes.ARNType)
 
-	// TODO: do something with this once I get to that test
-	// temp := make(map[string]string)
-	// roleDataCurrent.InlinePolicies = flex.FlattenFrameworkStringValueMap(ctx, temp)
-	roleDataCurrent.InlinePolicies = types.MapNull(fwtypes.IAMPolicyType)
+// // TODO: do something with this once I get to that test
+// // temp := make(map[string]string)
+// // roleDataCurrent.InlinePolicies = flex.FlattenFrameworkStringValueMap(ctx, temp)
+// roleDataCurrent.InlinePolicy = types.MapNull(fwtypes.IAMPolicyType)
 
-	// TODO: update this to be string is empty check?
-	if roleDataV0.PermissionsBoundary.ValueString() != "" {
-		roleDataCurrent.PermissionsBoundary = fwtypes.ARNValue(roleDataV0.PermissionsBoundary.ValueString())
-	} else {
-		roleDataCurrent.PermissionsBoundary = fwtypes.ARNNull()
-	}
+// // TODO: update this to be string is empty check?
+// if roleDataV0.PermissionsBoundary.ValueString() != "" {
+// roleDataCurrent.PermissionsBoundary = fwtypes.ARNValue(roleDataV0.PermissionsBoundary.ValueString())
+// } else {
+// roleDataCurrent.PermissionsBoundary = fwtypes.ARNNull()
+// }
 
-	// var managedPolicies []string
-	// resp.Diagnostics.Append(plan.ManagedPolicyArns.ElementsAs(ctx, &managedPolicies, false)...)
-	// if resp.Diagnostics.HasError() {
-	// return
-	// }
+// // var managedPolicies []string
+// // resp.Diagnostics.Append(plan.ManagedPolicyArns.ElementsAs(ctx, &managedPolicies, false)...)
+// // if resp.Diagnostics.HasError() {
+// // return
+// // }
 
-	// if jobQueueDataV0.SchedulingPolicyARN.ValueString() == "" {
-	// jobQueueDataV2.SchedulingPolicyARN = fwtypes.ARNNull()
-	// }
+// // if jobQueueDataV0.SchedulingPolicyARN.ValueString() == "" {
+// // jobQueueDataV2.SchedulingPolicyARN = fwtypes.ARNNull()
+// // }
 
-	diags := resp.State.Set(ctx, roleDataCurrent)
-	resp.Diagnostics.Append(diags...)
-	fmt.Println("Bottom of state upgrade")
-}
+// diags := resp.State.Set(ctx, roleDataCurrent)
+// resp.Diagnostics.Append(diags...)
+// fmt.Println("Bottom of state upgrade")
+// }
 
 func (r resourceIamRole) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	conn := r.Meta().IAMConn(ctx)
@@ -554,9 +580,13 @@ func (r resourceIamRole) Create(ctx context.Context, req resource.CreateRequest,
 
 	roleName := aws.StringValue(output.Role.RoleName)
 
-	if !plan.InlinePolicies.IsNull() && !plan.InlinePolicies.IsUnknown() {
-		inline_policies_map := flex.ExpandFrameworkStringValueMap(ctx, plan.InlinePolicies)
-		policies := expandRoleInlinePolicies(roleName, inline_policies_map)
+	if !plan.InlinePolicy.IsNull() && !plan.InlinePolicy.IsUnknown() {
+		var inlinePolicies []inlinePolicyData
+		resp.Diagnostics.Append(plan.InlinePolicy.ElementsAs(ctx, &inlinePolicies, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		policies := expandRoleInlinePolicies(roleName, inlinePolicies)
 		if err := r.addRoleInlinePolicies(ctx, policies); err != nil {
 			resp.Diagnostics.AddError(
 				create.ProblemStandardMessage(names.IAM, create.ErrActionCreating, ResNameRole, name, nil),
@@ -620,7 +650,7 @@ func (r resourceIamRole) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 
 	hasInline := false
-	if !state.InlinePolicies.IsNull() && !state.InlinePolicies.IsUnknown() {
+	if !state.InlinePolicy.IsNull() && !state.InlinePolicy.IsUnknown() {
 		hasInline = true
 	}
 
@@ -677,6 +707,7 @@ func (r *resourceIamRole) ModifyPlan(ctx context.Context, request resource.Modif
 }
 
 func (r resourceIamRole) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	fmt.Println("Top of Read")
 	conn := r.Meta().IAMConn(ctx)
 
 	var state resourceIamRoleData
@@ -759,22 +790,34 @@ func (r resourceIamRole) Read(ctx context.Context, req resource.ReadRequest, res
 
 	// Unforunately because of `aws_iam_role_policy` and those like it, we have to ignore unless
 	// added via create
-	if !state.InlinePolicies.IsNull() && !state.InlinePolicies.IsUnknown() {
+	if !state.InlinePolicy.IsNull() && !state.InlinePolicy.IsUnknown() {
+		fmt.Println("Found Inline Policies in state...")
 		inlinePolicies, err := r.readRoleInlinePolicies(ctx, aws.StringValue(role.RoleName))
 		if err != nil {
 			resp.Diagnostics.AddError(
-				create.ProblemStandardMessage(names.IAM, create.ErrActionReading, state.InlinePolicies.String(), state.ID.String(), err),
+				create.ProblemStandardMessage(names.IAM, create.ErrActionReading, state.InlinePolicy.String(), state.ID.String(), err),
 				err.Error(),
 			)
 			return
 		}
 
 		var configPoliciesList []*iam.PutRolePolicyInput
-		inline_policies_map := flex.ExpandFrameworkStringValueMap(ctx, state.InlinePolicies)
-		configPoliciesList = expandRoleInlinePolicies(aws.StringValue(role.RoleName), inline_policies_map)
+
+		var inlinePoliciesSet []inlinePolicyData
+		resp.Diagnostics.Append(state.InlinePolicy.ElementsAs(ctx, &inlinePoliciesSet, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		configPoliciesList = expandRoleInlinePolicies(aws.StringValue(role.RoleName), inlinePoliciesSet)
+		// inline_policies_map := flex.ExpandFrameworkStringValueMap(ctx, state.InlinePolicy)
+		// configPoliciesList = expandRoleInlinePolicies(aws.StringValue(role.RoleName), inline_policies_map)
 
 		if !inlinePoliciesEquivalent(inlinePolicies, configPoliciesList) {
-			state.InlinePolicies = flex.FlattenFrameworkStringValueMap(ctx, flattenRoleInlinePolicies(inlinePolicies))
+			fmt.Println("Found Inline Policies different from state...")
+			flattenedInlinePolicies, d := flattenRoleInlinePolicies(ctx, inlinePolicies)
+			resp.Diagnostics.Append(d...)
+			fmt.Println(fmt.Sprintf("flattenedInlinePolicies: %+v", flattenedInlinePolicies))
+			state.InlinePolicy = flattenedInlinePolicies
 		}
 	}
 
@@ -794,9 +837,11 @@ func (r resourceIamRole) Read(ctx context.Context, req resource.ReadRequest, res
 	setTagsOut(ctx, role.Tags)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	fmt.Println("Top of Bottom")
 }
 
 func (r resourceIamRole) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	fmt.Println("Top of Update")
 	conn := r.Meta().IAMConn(ctx)
 
 	var plan, state resourceIamRoleData
@@ -915,21 +960,44 @@ func (r resourceIamRole) Update(ctx context.Context, req resource.UpdateRequest,
 		state.PermissionsBoundary = plan.PermissionsBoundary
 	}
 
-	if !plan.InlinePolicies.Equal(state.InlinePolicies) && inlinePoliciesActualDiff(ctx, &plan, &state) {
-		old_inline_policies_map := flex.ExpandFrameworkStringValueMap(ctx, state.InlinePolicies)
-		new_inline_policies_map := flex.ExpandFrameworkStringValueMap(ctx, plan.InlinePolicies)
+	var oldPoliciesData []inlinePolicyData
+	resp.Diagnostics.Append(state.InlinePolicy.ElementsAs(ctx, &oldPoliciesData, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var newPoliciesData []inlinePolicyData
+	resp.Diagnostics.Append(plan.InlinePolicy.ElementsAs(ctx, &newPoliciesData, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	roleName := state.Name.ValueString()
+
+	if !plan.InlinePolicy.Equal(state.InlinePolicy) && inlinePoliciesActualDiff(roleName, oldPoliciesData, newPoliciesData) {
+		fmt.Println("Hitting InlinePolicy Update")
+		oldInlinePoliciesMap := make(map[string]string)
+		newInlinePoliciesMap := make(map[string]string)
+
+		for _, inlinePolicyObj := range oldPoliciesData {
+			oldInlinePoliciesMap[inlinePolicyObj.Name.ValueString()] = inlinePolicyObj.Policy.ValueString()
+		}
+
+		for _, inlinePolicyObj := range newPoliciesData {
+			newInlinePoliciesMap[inlinePolicyObj.Name.ValueString()] = inlinePolicyObj.Policy.ValueString()
+		}
 
 		var remove_policy_names []string
-		for k := range old_inline_policies_map {
-			if _, ok := new_inline_policies_map[k]; !ok {
-				remove_policy_names = append(remove_policy_names, k)
+		for _, val := range oldPoliciesData {
+			if _, ok := newInlinePoliciesMap[val.Name.ValueString()]; !ok {
+				remove_policy_names = append(remove_policy_names, val.Name.ValueString())
 			}
 		}
 
 		// need set like object to store policy names we want to add
 		add_policy_names := make(map[string]int64)
-		for k, v := range new_inline_policies_map {
-			val, ok := old_inline_policies_map[k]
+		for k, v := range newInlinePoliciesMap {
+			val, ok := oldInlinePoliciesMap[k]
 			// If the key exists
 			if !ok {
 				add_policy_names[k] = 0
@@ -941,8 +1009,15 @@ func (r resourceIamRole) Update(ctx context.Context, req resource.UpdateRequest,
 			}
 		}
 
-		roleName := state.Name.ValueString()
-		nsPolicies := expandRoleInlinePolicies(roleName, new_inline_policies_map)
+		// TODO: convert newInlinePoliciesMap to be able to expand
+		var policies []inlinePolicyData
+		for name, policy := range newInlinePoliciesMap {
+			var inlinePolicy inlinePolicyData
+			inlinePolicy.Name = types.StringValue(name)
+			inlinePolicy.Policy = fwtypes.IAMPolicyValue(policy)
+			policies = append(policies, inlinePolicy)
+		}
+		nsPolicies := expandRoleInlinePolicies(roleName, policies)
 
 		// getting policy objects we want to add based on add_policy_names map
 		var add_policies []*iam.PutRolePolicyInput
@@ -953,10 +1028,13 @@ func (r resourceIamRole) Update(ctx context.Context, req resource.UpdateRequest,
 			}
 		}
 
+		fmt.Println(fmt.Sprintf("remove_policy_names: %+v", remove_policy_names))
+		fmt.Println(fmt.Sprintf("add_policy_names: %+v", add_policy_names))
+
 		// Always add before delete
 		if err := r.addRoleInlinePolicies(ctx, add_policies); err != nil {
 			resp.Diagnostics.AddError(
-				create.ProblemStandardMessage(names.IAM, create.ErrActionUpdating, state.ID.String(), plan.InlinePolicies.String(), err),
+				create.ProblemStandardMessage(names.IAM, create.ErrActionUpdating, state.ID.String(), plan.InlinePolicy.String(), err),
 				err.Error(),
 			)
 			return
@@ -964,12 +1042,11 @@ func (r resourceIamRole) Update(ctx context.Context, req resource.UpdateRequest,
 
 		if err := deleteRoleInlinePolicies(ctx, conn, roleName, remove_policy_names); err != nil {
 			resp.Diagnostics.AddError(
-				create.ProblemStandardMessage(names.IAM, create.ErrActionUpdating, state.ID.String(), plan.InlinePolicies.String(), err),
+				create.ProblemStandardMessage(names.IAM, create.ErrActionUpdating, state.ID.String(), plan.InlinePolicy.String(), err),
 				err.Error(),
 			)
 			return
 		}
-
 	}
 
 	if !plan.ManagedPolicyArns.Equal(state.ManagedPolicyArns) {
@@ -1048,6 +1125,7 @@ func (r resourceIamRole) Update(ctx context.Context, req resource.UpdateRequest,
 	plan.NamePrefix = flex.StringToFramework(ctx, create.NamePrefixFromName(plan.Name.ValueString()))
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	fmt.Println("Bottom of Update")
 }
 
 func FindRoleByName(ctx context.Context, conn *iam.IAM, name string) (*iam.Role, error) {
@@ -1313,15 +1391,15 @@ func deleteRoleInlinePolicies(ctx context.Context, conn *iam.IAM, roleName strin
 	return errors.Join(errs...)
 }
 
-func expandRoleInlinePolicies(roleName string, tfPoliciesMap map[string]string) []*iam.PutRolePolicyInput {
-	if len(tfPoliciesMap) == 0 {
+func expandRoleInlinePolicies(roleName string, inlinePolicies []inlinePolicyData) []*iam.PutRolePolicyInput {
+	if len(inlinePolicies) == 0 {
 		return nil
 	}
 
 	var apiObjects []*iam.PutRolePolicyInput
 
-	for policyName, policyDocument := range tfPoliciesMap {
-		apiObject := expandRoleInlinePolicy(roleName, policyName, policyDocument)
+	for _, inlinePolicyObj := range inlinePolicies {
+		apiObject := expandRoleInlinePolicy(roleName, inlinePolicyObj.Name.ValueString(), inlinePolicyObj.Policy.ValueString())
 
 		if apiObject == nil {
 			continue
@@ -1361,14 +1439,10 @@ func (r resourceIamRole) addRoleInlinePolicies(ctx context.Context, policies []*
 	return errs.ErrorOrNil()
 }
 
-func inlinePoliciesActualDiff(ctx context.Context, plan *resourceIamRoleData, state *resourceIamRoleData) bool {
-	roleName := state.Name.ValueString()
-
-	old_inline_policies_map := flex.ExpandFrameworkStringValueMap(ctx, state.InlinePolicies)
-	new_inline_policies_map := flex.ExpandFrameworkStringValueMap(ctx, plan.InlinePolicies)
-
-	osPolicies := expandRoleInlinePolicies(roleName, old_inline_policies_map)
-	nsPolicies := expandRoleInlinePolicies(roleName, new_inline_policies_map)
+// TODO: should I pass address here? Might cause an issue?
+func inlinePoliciesActualDiff(roleName string, oldInlinePolicies, newInlinePolicies []inlinePolicyData) bool {
+	osPolicies := expandRoleInlinePolicies(roleName, oldInlinePolicies)
+	nsPolicies := expandRoleInlinePolicies(roleName, newInlinePolicies)
 
 	return !inlinePoliciesEquivalent(nsPolicies, osPolicies)
 }
@@ -1447,20 +1521,33 @@ func (r resourceIamRole) readRoleInlinePolicies(ctx context.Context, roleName st
 	return apiObjects, nil
 }
 
-func flattenRoleInlinePolicies(apiObjects []*iam.PutRolePolicyInput) map[string]string {
-	if len(apiObjects) == 0 {
-		return nil
+func flattenRoleInlinePolicies(ctx context.Context, apiObjects []*iam.PutRolePolicyInput) (types.Set, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	elemType := types.ObjectType{AttrTypes: inlinePolicyAttrTypes}
+
+	if apiObjects == nil {
+		return types.SetNull(elemType), diags
 	}
 
-	tfMap := make(map[string]string)
+	var tfSet []attr.Value
 
 	for _, apiObject := range apiObjects {
 		if apiObject == nil {
 			continue
 		}
 
-		tfMap[aws.StringValue(apiObject.PolicyName)] = aws.StringValue(apiObject.PolicyDocument)
+		obj := map[string]attr.Value{
+			"name":   flex.StringValueToFramework(ctx, aws.StringValue(apiObject.PolicyName)),
+			"policy": fwtypes.IAMPolicyValue(aws.StringValue(apiObject.PolicyDocument)),
+		}
+		objVal, d := types.ObjectValue(inlinePolicyAttrTypes, obj)
+		diags.Append(d...)
+
+		tfSet = append(tfSet, objVal)
 	}
 
-	return tfMap
+	setVal, d := types.SetValue(elemType, tfSet)
+	diags.Append(d...)
+
+	return setVal, diags
 }
