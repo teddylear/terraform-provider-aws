@@ -165,37 +165,6 @@ func (r *resourceIamRole) Schema(ctx context.Context, req resource.SchemaRequest
 				Computed: true,
 				Default:  booldefault.StaticBool(false),
 			},
-
-			// TODO: maybe mapof of IAMPolicytype?
-			// "inline_policies": schema.MapAttribute{
-			// ElementType: fwtypes.IAMPolicyType,
-			// Optional:    true,
-			// PlanModifiers: []planmodifier.Map{
-			// EditPlanForSameReorderedPolicies(),
-			// // TODO: custom plan modifier for something like editing plan is fine
-			// },
-			// // TODO: custom validator for name stuff?
-			// // TODO: validators and name func for both
-			// // "name": {
-			// // Type:     schema.TypeString,
-			// // Optional: true, // semantically required but syntactically optional to allow empty inline_policy
-			// // ValidateFunc: validation.All(
-			// // validation.StringIsNotEmpty,
-			// // validRolePolicyName,
-			// // ),
-			// // },
-			// // "policy": {
-			// // Type:                  schema.TypeString,
-			// // Optional:              true, // semantically required but syntactically optional to allow empty inline_policy
-			// // ValidateFunc:          verify.ValidIAMPolicyJSON,
-			// // DiffSuppressFunc:      verify.SuppressEquivalentPolicyDiffs,
-			// // DiffSuppressOnRefresh: true,
-			// // StateFunc: func(v interface{}) string {
-			// // json, _ := verify.LegacyPolicyNormalize(v)
-			// // return json
-			// // },
-			// // },
-			// },
 			"managed_policy_arns": schema.SetAttribute{
 				Optional:    true,
 				ElementType: fwtypes.ARNType,
@@ -234,6 +203,7 @@ func (r *resourceIamRole) Schema(ctx context.Context, req resource.SchemaRequest
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplaceIfConfigured(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Validators: []validator.String{
 					stringvalidator.LengthAtMost(roleNamePrefixMaxLen),
@@ -680,6 +650,7 @@ func (r *resourceIamRole) ImportState(ctx context.Context, request resource.Impo
 
 func (r *resourceIamRole) ModifyPlan(ctx context.Context, request resource.ModifyPlanRequest, response *resource.ModifyPlanResponse) {
 	if !request.Plan.Raw.IsNull() && !request.State.Raw.IsNull() {
+		fmt.Println("Hitting ModifyPlan logic...")
 		var state, plan resourceIamRoleData
 
 		response.Diagnostics.Append(request.State.Get(ctx, &state)...)
@@ -694,14 +665,51 @@ func (r *resourceIamRole) ModifyPlan(ctx context.Context, request resource.Modif
 			return
 		}
 
-		if state.Description.ValueString() == plan.Description.ValueString() {
-			response.Diagnostics.Append(response.Plan.SetAttribute(ctx, path.Root("description"), state.Description)...)
+		var oldPoliciesData []inlinePolicyData
+		response.Diagnostics.Append(state.InlinePolicy.ElementsAs(ctx, &oldPoliciesData, false)...)
+		if response.Diagnostics.HasError() {
+			return
 		}
+
+		var newPoliciesData []inlinePolicyData
+		response.Diagnostics.Append(plan.InlinePolicy.ElementsAs(ctx, &newPoliciesData, false)...)
+		if response.Diagnostics.HasError() {
+			return
+		}
+
+		fmt.Println(fmt.Sprintf("oldPoliciesData: %+v", oldPoliciesData))
+		fmt.Println(fmt.Sprintf("newPoliciesData: %+v", newPoliciesData))
+
+		var planPoliciesData []inlinePolicyData
+		for _, newInlinePolicy := range newPoliciesData {
+			foundMatchInOldPolicies := false
+			for _, oldInlinePolicy := range oldPoliciesData {
+				if oldInlinePolicy.Name == newInlinePolicy.Name && verify.PolicyStringsEquivalent(oldInlinePolicy.Policy.ValueString(), newInlinePolicy.Policy.ValueString()) {
+					fmt.Println("found match!")
+					foundMatchInOldPolicies = true
+					planPoliciesData = append(planPoliciesData, oldInlinePolicy)
+					break
+				}
+			}
+
+			if !foundMatchInOldPolicies {
+				planPoliciesData = append(planPoliciesData, newInlinePolicy)
+			}
+		}
+
+		response.Plan.SetAttribute(ctx, path.Root("inline_policy"), planPoliciesData)
+
+		// TODO: set plan policies
+
+		// TODO: Is this required for state upgrade?
+		// if state.Description.ValueString() == plan.Description.ValueString() {
+		// response.Diagnostics.Append(response.Plan.SetAttribute(ctx, path.Root("description"), state.Description)...)
+		// }
 
 		if state.NamePrefix.ValueString() == plan.NamePrefix.ValueString() {
 			response.Diagnostics.Append(response.Plan.SetAttribute(ctx, path.Root("name_prefix"), state.NamePrefix)...)
 		}
-
+		fmt.Println("Bottom ModifyPlan logic...")
 	}
 	r.SetTagsAll(ctx, request, response)
 }

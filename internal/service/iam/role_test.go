@@ -882,7 +882,7 @@ func TestAccIAMRole_InlinePolicy_ignoreOrder(t *testing.T) {
 				Config: testAccRoleConfig_policyInlineActionOrder(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoleExists(ctx, resourceName, &role),
-					resource.TestCheckResourceAttr(resourceName, "inline_policies.%", "1"),
+					resource.TestCheckResourceAttr(resourceName, "inline_policy.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "managed_policy_arns.#", "0"),
 				),
@@ -2225,8 +2225,9 @@ resource "aws_iam_role" "test" {
     }]
   })
 
-  inline_policies = {
-    %[1]q = jsonencode({
+  inline_policy {
+    name = %[1]q
+    policy = jsonencode({
       Version = "2012-10-17"
       Statement = [{
         Action = [
@@ -2263,8 +2264,9 @@ resource "aws_iam_role" "test" {
     }]
   })
 
-  inline_policies = {
-    %[1]q = jsonencode({
+  inline_policy {
+    name = %[1]q
+    policy = jsonencode({
       Version = "2012-10-17"
       Statement = [{
         Action = [
@@ -2300,8 +2302,9 @@ resource "aws_iam_role" "test" {
     }]
   })
 
-  inline_policies = {
-    %[1]q = jsonencode({
+  inline_policy {
+    name = %[1]q
+    policy = jsonencode({
       Version = "2012-10-17"
       Statement = [{
         Action = [
