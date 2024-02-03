@@ -362,17 +362,8 @@ func oldSDKRoleSchema(ctx context.Context) schema.Schema {
 				Optional: true,
 				// TODO Validate,
 			},
-			"tags": // TODO tftags.TagsAttribute()
-			schema.MapAttribute{
-				ElementType: types.StringType,
-				Optional:    true,
-			},
-			"tags_all": // TODO tftags.TagsAttributeComputedOnly()
-			schema.MapAttribute{
-				ElementType: types.StringType,
-				Optional:    true,
-				Computed:    true,
-			},
+			names.AttrTags:    tftags.TagsAttribute(),
+			names.AttrTagsAll: tftags.TagsAttributeComputedOnly(),
 			"unique_id": schema.StringAttribute{
 				Computed: true,
 			},
@@ -383,11 +374,9 @@ func oldSDKRoleSchema(ctx context.Context) schema.Schema {
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
 							Optional: true,
-							// TODO Validate,
 						},
 						"policy": schema.StringAttribute{
 							Optional: true,
-							// TODO Validate,
 						},
 					},
 				},
@@ -396,104 +385,109 @@ func oldSDKRoleSchema(ctx context.Context) schema.Schema {
 	}
 }
 
-// func (r *resourceIamRole) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
-// schemaV0 := oldSDKRoleSchema(ctx)
+func (r *resourceIamRole) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	schemaV0 := oldSDKRoleSchema(ctx)
 
-// return map[int64]resource.StateUpgrader{
-// 0: {
-// PriorSchema:   &schemaV0,
-// StateUpgrader: upgradeIAMRoleResourceStateV0toV1,
-// },
-// }
-// }
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema:   &schemaV0,
+			StateUpgrader: upgradeIAMRoleResourceStateV0toV1,
+		},
+	}
+}
 
-// // TODO: ok finish working on this to perform upgrade cleanly
-// func upgradeIAMRoleResourceStateV0toV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-// fmt.Println("Top of state upgrade")
-// type resourceIamRoleDataV0 struct {
-// ARN                 types.String `tfsdk:"arn"`
-// AssumeRolePolicy    types.String `tfsdk:"assume_role_policy"`
-// CreateDate          types.String `tfsdk:"create_date"`
-// Description         types.String `tfsdk:"description"`
-// ForceDetachPolicies types.Bool   `tfsdk:"force_detach_policies"`
-// ID                  types.String `tfsdk:"id"`
-// ManagedPolicyArns   types.Set    `tfsdk:"managed_policy_arns"`
-// MaxSessionDuration  types.Int64  `tfsdk:"max_session_duration"`
-// Name                types.String `tfsdk:"name"`
-// NamePrefix          types.String `tfsdk:"name_prefix"`
-// Path                types.String `tfsdk:"path"`
-// PermissionsBoundary types.String `tfsdk:"permissions_boundary"`
-// Tags                types.Map    `tfsdk:"tags"`
-// TagsAll             types.Map    `tfsdk:"tags_all"`
-// UniqueID            types.String `tfsdk:"unique_id"`
-// InlinePolicy        types.Set    `tfsdk:"inline_policy"`
-// }
+// TODO: ok finish working on this to perform upgrade cleanly
+func upgradeIAMRoleResourceStateV0toV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+	fmt.Println("Top of state upgrade")
+	type resourceIamRoleDataV0 struct {
+		ARN                 types.String `tfsdk:"arn"`
+		AssumeRolePolicy    types.String `tfsdk:"assume_role_policy"`
+		CreateDate          types.String `tfsdk:"create_date"`
+		Description         types.String `tfsdk:"description"`
+		ForceDetachPolicies types.Bool   `tfsdk:"force_detach_policies"`
+		ID                  types.String `tfsdk:"id"`
+		ManagedPolicyArns   types.Set    `tfsdk:"managed_policy_arns"`
+		MaxSessionDuration  types.Int64  `tfsdk:"max_session_duration"`
+		Name                types.String `tfsdk:"name"`
+		NamePrefix          types.String `tfsdk:"name_prefix"`
+		Path                types.String `tfsdk:"path"`
+		PermissionsBoundary types.String `tfsdk:"permissions_boundary"`
+		Tags                types.Map    `tfsdk:"tags"`
+		TagsAll             types.Map    `tfsdk:"tags_all"`
+		UniqueID            types.String `tfsdk:"unique_id"`
+		InlinePolicy        types.Set    `tfsdk:"inline_policy"`
+	}
 
-// var roleDataV0 resourceIamRoleDataV0
+	var roleDataV0 resourceIamRoleDataV0
 
-// resp.Diagnostics.Append(req.State.Get(ctx, &roleDataV0)...)
-// if resp.Diagnostics.HasError() {
-// fmt.Println("There was an error :(")
-// return
-// }
+	resp.Diagnostics.Append(req.State.Get(ctx, &roleDataV0)...)
+	if resp.Diagnostics.HasError() {
+		fmt.Println("There was an error :(")
+		return
+	}
 
-// fmt.Println("Made it here!")
+	fmt.Println("Made it here!")
 
-// roleDataCurrent := resourceIamRoleData{
-// ARN:                 fwtypes.ARNValue(roleDataV0.ARN.ValueString()),
-// AssumeRolePolicy:    fwtypes.IAMPolicyValue(roleDataV0.AssumeRolePolicy.ValueString()),
-// CreateDate:          roleDataV0.CreateDate,
-// Description:         roleDataV0.Description,
-// ForceDetachPolicies: roleDataV0.ForceDetachPolicies,
-// ID:                  roleDataV0.ID,
-// MaxSessionDuration:  roleDataV0.MaxSessionDuration,
-// Name:                roleDataV0.Name,
-// Path:                roleDataV0.Path,
-// UniqueID:            roleDataV0.UniqueID,
-// NamePrefix:          roleDataV0.NamePrefix,
-// Tags:                roleDataV0.Tags,
-// TagsAll:             roleDataV0.TagsAll,
-// }
+	roleDataCurrent := resourceIamRoleData{
+		ARN:                 fwtypes.ARNValue(roleDataV0.ARN.ValueString()),
+		AssumeRolePolicy:    fwtypes.IAMPolicyValue(roleDataV0.AssumeRolePolicy.ValueString()),
+		CreateDate:          roleDataV0.CreateDate,
+		Description:         roleDataV0.Description,
+		ForceDetachPolicies: roleDataV0.ForceDetachPolicies,
+		ID:                  roleDataV0.ID,
+		MaxSessionDuration:  roleDataV0.MaxSessionDuration,
+		Name:                roleDataV0.Name,
+		Path:                roleDataV0.Path,
+		UniqueID:            roleDataV0.UniqueID,
+		NamePrefix:          roleDataV0.NamePrefix,
+		Tags:                roleDataV0.Tags,
+		TagsAll:             roleDataV0.TagsAll,
+	}
 
-// // TODO: fix this later?
-// // roleDataCurrent.NamePrefix = types.StringNull()
+	// TODO: fix this later?
+	// roleDataCurrent.NamePrefix = types.StringNull()
 
-// // if roleDataV0.NamePrefix.ValueString() == "" {
-// // roleDataCurrent.NamePrefix = types.StringNull()
-// // // fmt.Println("Name prefix is empty!")
-// // }
+	// if roleDataV0.NamePrefix.ValueString() == "" {
+	// roleDataCurrent.NamePrefix = types.StringNull()
+	// // fmt.Println("Name prefix is empty!")
+	// }
 
-// // TODO: do something with this once I get to that test
-// // var policyARNs []string
-// // roleDataCurrent.ManagedPolicyArns = flex.FlattenFrameworkStringValueSet(ctx, policyARNs)
-// roleDataCurrent.ManagedPolicyArns = types.SetNull(fwtypes.ARNType)
+	// TODO: do something with this once I get to that test
+	// var policyARNs []string
+	// roleDataCurrent.ManagedPolicyArns = flex.FlattenFrameworkStringValueSet(ctx, policyARNs)
+	roleDataCurrent.ManagedPolicyArns = types.SetNull(fwtypes.ARNType)
 
-// // TODO: do something with this once I get to that test
-// // temp := make(map[string]string)
-// // roleDataCurrent.InlinePolicies = flex.FlattenFrameworkStringValueMap(ctx, temp)
-// roleDataCurrent.InlinePolicy = types.MapNull(fwtypes.IAMPolicyType)
+	// TODO: do something with this once I get to that test
+	// temp := make(map[string]string)
+	// roleDataCurrent.InlinePolicies = flex.FlattenFrameworkStringValueMap(ctx, temp)
+	// var oldInlinePolicyAttrTypes = map[string]attr.Type{
+	// "name":   types.StringType,
+	// "policy": types.StringType,
+	// }
+	elemType := types.ObjectType{AttrTypes: inlinePolicyAttrTypes}
+	roleDataCurrent.InlinePolicy = types.SetNull(elemType)
 
-// // TODO: update this to be string is empty check?
-// if roleDataV0.PermissionsBoundary.ValueString() != "" {
-// roleDataCurrent.PermissionsBoundary = fwtypes.ARNValue(roleDataV0.PermissionsBoundary.ValueString())
-// } else {
-// roleDataCurrent.PermissionsBoundary = fwtypes.ARNNull()
-// }
+	// TODO: update this to be string is empty check?
+	// if roleDataV0.PermissionsBoundary.ValueString() != "" {
+	// roleDataCurrent.PermissionsBoundary = fwtypes.ARNValue(roleDataV0.PermissionsBoundary.ValueString())
+	// } else {
+	// roleDataCurrent.PermissionsBoundary = fwtypes.ARNNull()
+	// }
 
-// // var managedPolicies []string
-// // resp.Diagnostics.Append(plan.ManagedPolicyArns.ElementsAs(ctx, &managedPolicies, false)...)
-// // if resp.Diagnostics.HasError() {
-// // return
-// // }
+	// var managedPolicies []string
+	// resp.Diagnostics.Append(plan.ManagedPolicyArns.ElementsAs(ctx, &managedPolicies, false)...)
+	// if resp.Diagnostics.HasError() {
+	// return
+	// }
 
-// // if jobQueueDataV0.SchedulingPolicyARN.ValueString() == "" {
-// // jobQueueDataV2.SchedulingPolicyARN = fwtypes.ARNNull()
-// // }
+	// if jobQueueDataV0.SchedulingPolicyARN.ValueString() == "" {
+	// jobQueueDataV2.SchedulingPolicyARN = fwtypes.ARNNull()
+	// }
 
-// diags := resp.State.Set(ctx, roleDataCurrent)
-// resp.Diagnostics.Append(diags...)
-// fmt.Println("Bottom of state upgrade")
-// }
+	diags := resp.State.Set(ctx, roleDataCurrent)
+	resp.Diagnostics.Append(diags...)
+	fmt.Println("Bottom of state upgrade")
+}
 
 func (r resourceIamRole) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	conn := r.Meta().IAMConn(ctx)
@@ -702,10 +696,9 @@ func (r *resourceIamRole) ModifyPlan(ctx context.Context, request resource.Modif
 			response.Plan.SetAttribute(ctx, path.Root("inline_policy"), planPoliciesData)
 		}
 
-		// TODO: Is this required for state upgrade?
-		// if state.Description.ValueString() == plan.Description.ValueString() {
-		// response.Diagnostics.Append(response.Plan.SetAttribute(ctx, path.Root("description"), state.Description)...)
-		// }
+		if state.Description.ValueString() == plan.Description.ValueString() {
+			response.Diagnostics.Append(response.Plan.SetAttribute(ctx, path.Root("description"), state.Description)...)
+		}
 
 		if state.NamePrefix.ValueString() == plan.NamePrefix.ValueString() {
 			response.Diagnostics.Append(response.Plan.SetAttribute(ctx, path.Root("name_prefix"), state.NamePrefix)...)
