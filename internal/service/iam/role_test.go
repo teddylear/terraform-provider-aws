@@ -2006,8 +2006,9 @@ resource "aws_iam_role" "test" {
     }]
   })
 
-  inline_policies = {
-    "validName" = <<EOF
+  inline_policy {
+    name = "validName"
+    policy = <<EOF
 this will be bad oh no!
 {
   "Version": "2012-10-17",
