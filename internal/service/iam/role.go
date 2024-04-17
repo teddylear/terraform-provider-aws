@@ -162,15 +162,8 @@ func (r *resourceIamRole) Schema(ctx context.Context, req resource.SchemaRequest
 	resp.Schema = schema.Schema{
 		Version: 1,
 		Attributes: map[string]schema.Attribute{
-			"arn": schema.StringAttribute{
-				CustomType: fwtypes.ARNType,
-				Computed:   true,
-				Optional:   true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"id": framework.IDAttribute(),
+			names.AttrARN: framework.ARNAttributeComputedOnly(),
+			"id":          framework.IDAttribute(),
 			"assume_role_policy": schema.StringAttribute{
 				Required:   true,
 				CustomType: fwtypes.IAMPolicyType,
@@ -287,7 +280,7 @@ func (r *resourceIamRole) Schema(ctx context.Context, req resource.SchemaRequest
 }
 
 type resourceIamRoleData struct {
-	ARN                 fwtypes.ARN       `tfsdk:"arn"`
+	ARN                 types.String      `tfsdk:"arn"`
 	AssumeRolePolicy    fwtypes.IAMPolicy `tfsdk:"assume_role_policy"`
 	CreateDate          types.String      `tfsdk:"create_date"`
 	ID                  types.String      `tfsdk:"id"`
@@ -305,7 +298,7 @@ type resourceIamRoleData struct {
 	TagsAll             types.Map         `tfsdk:"tags_all"`
 }
 
-func oldSDKRoleSchema() schema.Schema {
+func roleSchemaV0() schema.Schema {
 	return schema.Schema{
 		Version: 0,
 		Attributes: map[string]schema.Attribute{
@@ -399,7 +392,7 @@ func oldSDKRoleSchema() schema.Schema {
 }
 
 func (r *resourceIamRole) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
-	schemaV0 := oldSDKRoleSchema()
+	schemaV0 := roleSchemaV0()
 
 	return map[int64]resource.StateUpgrader{
 		0: {
@@ -437,7 +430,7 @@ func upgradeRoleResourceStateV0toV1(ctx context.Context, req resource.UpgradeSta
 	}
 
 	roleDataCurrent := resourceIamRoleData{
-		ARN:                 fwtypes.ARNValueMust(roleDataV0.ARN.ValueString()),
+		ARN:                 roleDataV0.ARN,
 		AssumeRolePolicy:    fwtypes.IAMPolicyValue(roleDataV0.AssumeRolePolicy.ValueString()),
 		CreateDate:          roleDataV0.CreateDate,
 		Description:         roleDataV0.Description,
@@ -585,7 +578,7 @@ func (r resourceIamRole) Create(ctx context.Context, req resource.CreateRequest,
 		}
 	}
 
-	plan.ARN = fwtypes.ARNValueMust(*output.Role.Arn)
+	plan.ARN = flex.StringToFramework(ctx, output.Role.Arn)
 	plan.CreateDate = flex.StringValueToFramework(ctx, output.Role.CreateDate.Format(time.RFC3339))
 	plan.ID = flex.StringToFramework(ctx, output.Role.RoleName)
 	plan.Name = flex.StringToFramework(ctx, output.Role.RoleName)
@@ -700,7 +693,7 @@ func (r resourceIamRole) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	state.ARN = fwtypes.ARNValueMust(*role.Arn)
+	state.ARN = flex.StringToFramework(ctx, role.Arn)
 	state.CreateDate = flex.StringValueToFramework(ctx, role.CreateDate.Format(time.RFC3339))
 	state.Path = flex.StringToFramework(ctx, role.Path)
 	state.Name = flex.StringToFramework(ctx, role.RoleName)
