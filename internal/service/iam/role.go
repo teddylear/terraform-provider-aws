@@ -57,7 +57,7 @@ const (
 	MaxSessionDurationMax = 43200
 )
 
-// @FrameworkResource("aws_iam_policy", name="Role")
+// @FrameworkResource(name="Role")
 // @Tags(identifierAttribute="id", resourceType="Role")
 func NewResourceRole(_ context.Context) (resource.ResourceWithConfigure, error) {
 	r := &resourceIamRole{}
