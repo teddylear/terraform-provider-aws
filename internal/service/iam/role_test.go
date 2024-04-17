@@ -44,7 +44,7 @@ func TestAccIAMRole_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "path", "/"),
 					resource.TestCheckResourceAttrSet(resourceName, "create_date"),
 					resource.TestCheckResourceAttrSet(resourceName, "unique_id"),
-					resource.TestCheckResourceAttrSet(resourceName, "arn"),
+					acctest.CheckResourceAttrGlobalARN(resourceName, "arn", "iam", fmt.Sprintf("role/%s", rName)),
 				),
 			},
 			{

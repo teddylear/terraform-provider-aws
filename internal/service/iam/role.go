@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -607,7 +608,7 @@ func (r resourceIamRole) Delete(ctx context.Context, req resource.DeleteRequest,
 		hasManaged = true
 	}
 
-	err := DeleteRole(ctx, conn, state.Name.ValueString(), state.ForceDetachPolicies.ValueBool(), hasInline, hasManaged)
+	err := deleteRole(ctx, conn, state.Name.ValueString(), state.ForceDetachPolicies.ValueBool(), hasInline, hasManaged)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -685,7 +686,7 @@ func (r resourceIamRole) Read(ctx context.Context, req resource.ReadRequest, res
 	role := outputRaw.(*awstypes.Role)
 
 	// occasionally, immediately after a role is created, AWS will give an ARN like AROAQ7SSZBKHREXAMPLE (unique ID)
-	if role, err = waitRoleARNIsNotUniqueID(ctx, conn, state.ARN.ValueString(), role); err != nil {
+	if role, err = waitRoleARNIsNotUniqueID(ctx, conn, state.ID.ValueString(), role); err != nil {
 		resp.Diagnostics.AddError(
 			create.ProblemStandardMessage(names.IAM, create.ErrActionSetting, state.Name.String(), state.ARN.String(), err),
 			err.Error(),
@@ -700,7 +701,7 @@ func (r resourceIamRole) Read(ctx context.Context, req resource.ReadRequest, res
 	state.ID = flex.StringToFramework(ctx, role.RoleName)
 	state.Description = flex.StringToFramework(ctx, role.Description)
 	state.NamePrefix = flex.StringToFramework(ctx, create.NamePrefixFromName(aws.ToString(role.RoleName)))
-	state.MaxSessionDuration = flex.Int32ValueToFramework(ctx, int32(*role.MaxSessionDuration))
+	state.MaxSessionDuration = flex.Int32ToFramework(ctx, role.MaxSessionDuration)
 	state.UniqueID = flex.StringToFramework(ctx, role.RoleId)
 
 	if state.ForceDetachPolicies.IsNull() {
@@ -708,7 +709,12 @@ func (r resourceIamRole) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	if role.PermissionsBoundary != nil {
-		state.PermissionsBoundary = fwtypes.ARNValueMust(*role.PermissionsBoundary.PermissionsBoundaryArn)
+		var diags diag.Diagnostics
+		state.PermissionsBoundary, diags = fwtypes.ARNValue(aws.ToString(role.PermissionsBoundary.PermissionsBoundaryArn))
+		resp.Diagnostics.Append(diags...)
+		if diags.HasError() {
+			return
+		}
 	} else {
 		state.PermissionsBoundary = fwtypes.ARNNull()
 	}
@@ -1095,7 +1101,7 @@ func (r resourceIamRole) addRoleManagedPolicies(ctx context.Context, roleName st
 	return errors.Join(errs...)
 }
 
-func DeleteRole(ctx context.Context, conn *iam.Client, roleName string, forceDetach, hasInline, hasManaged bool) error {
+func deleteRole(ctx context.Context, conn *iam.Client, roleName string, forceDetach, hasInline, hasManaged bool) error {
 	if err := deleteRoleInstanceProfiles(ctx, conn, roleName); err != nil {
 		return err
 	}
